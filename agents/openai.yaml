@@ -1,0 +1,7 @@
+interface:
+  display_name: "抖音作者全量入库"
+  short_description: "显式使用 /dy-author 才导入作者全部作品，普通抖音分享只处理本次作品"
+  default_prompt: "使用 $dy-author，从这条抖音作品找到作者，把作者主页全部公开作品去重后导入我的 Obsidian 知识库，含“面试”的作品同时写入面试题库。"
+
+policy:
+  allow_implicit_invocation: false

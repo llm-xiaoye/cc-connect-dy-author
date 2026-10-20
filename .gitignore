@@ -1,0 +1,15 @@
+# Personal configuration and all generated/received data stay on your machine.
+/config.json
+/.venv/
+/.cache/
+/.local/
+/.env
+/.env.*
+__pycache__/
+*.py[cod]
+.DS_Store
+.pytest_cache/
+*.log
+/dist/
+/build/
+*.egg-info/
