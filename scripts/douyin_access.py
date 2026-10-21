@@ -1,8 +1,4 @@
-"""Bounded Douyin detail recovery. Credentials stay in memory.
-
-Copied from douyin-to-obsidian and adapted to the pinned F2 dev branch, whose
-crawler raises typed API errors (with status_code) instead of returning {}.
-"""
+"""Douyin detail and browser recovery using the F2 version pinned by this package."""
 from __future__ import annotations
 
 from datetime import datetime, timezone

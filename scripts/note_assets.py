@@ -1,7 +1,4 @@
-"""Resolve reviewed page images; render local embeds without touching the vault.
-
-Copied from douyin-to-obsidian (migration-only helpers removed).
-"""
+"""Stage verified image evidence for dy-author knowledge notes."""
 from __future__ import annotations
 
 import hashlib

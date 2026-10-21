@@ -23,7 +23,7 @@ class SupplementTests(unittest.TestCase):
         self.root = helpers.temp_root(self)
         self.vault = helpers.make_vault(self.root)
         self.shared = self.root / "project-cache"
-        self.config = helpers.make_config(self.root, self.vault, shared_cache_dirs=[str(self.shared)])
+        self.config = helpers.make_config(self.root, self.vault, material_cache_dirs=[str(self.shared)])
         self.notes = {
             WITH_RAW: helpers.existing_note(self.vault, WITH_RAW, "知识库/AI/x/有原始材料.md"),
             BODY_ONLY: helpers.existing_note(self.vault, BODY_ONLY, "知识库/AI/x/只有正文.md"),

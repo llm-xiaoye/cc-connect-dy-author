@@ -254,7 +254,7 @@ class PrepareCommitTests(QueueBase):
         with patch.object(library, "atomic_write", side_effect=broken), self.assertRaises(OSError):
             dy_author.commit(run, state, config, INTERVIEW)
         self.assertEqual(before, files())
-        self.assertFalse((self.vault / ".dy-transaction.json").exists())
+        self.assertFalse((self.vault / ".dy-author-transaction.json").exists())
 
     def test_concurrent_note_makes_commit_exists(self):
         run, state, config, _ = self.plan(listing((FIRST, "video", ""),))

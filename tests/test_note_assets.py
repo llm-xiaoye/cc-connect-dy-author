@@ -85,7 +85,7 @@ class AssetTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 self.save()
         self.assertEqual(self.files(), baseline)
-        self.assertFalse((self.vault / ".dy-transaction.json").exists())
+        self.assertFalse((self.vault / ".dy-author-transaction.json").exists())
 
     def test_reviewed_pages_required(self):
         pipeline.write_json(self.cache / "analysis.json", dict(self.analysis, reviewed_pages=[1]))

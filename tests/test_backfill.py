@@ -72,7 +72,7 @@ class BackfillTests(unittest.TestCase):
         self.assertNotIn("douyin_author_id", library.read_note(self.notes[B])[0])
 
     def test_rate_limit_stops_lookups_and_reviewed_notes_are_skipped(self):
-        state = self.vault / ".dy-review-state.json"
+        state = self.vault / ".dy-author-review-state.json"
         state.write_text(json.dumps({"version": 1, "items": {C: {"initial_status": "未复审", "review": {
             "outcome": "复审通过", "note_sha256": "0" * 64, "reviewed_at": "2026-09-01"}}}}))
         lookup = FakeLookup({A: (AUTHOR, "甲"), B: (OTHER_AUTHOR, "乙")}, limit_at=A)

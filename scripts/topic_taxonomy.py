@@ -1,9 +1,7 @@
-"""Shared topic tree (copied from douyin-to-obsidian) plus the dy-author question bank.
+"""Topic categories for dy-author knowledge notes and interview questions.
 
-The folder says what problem a note answers.  Source, format, and interview
-context are metadata, never physical categories — except the dedicated
-``知识库/面试题库`` root, which only dy-author writes.
-"""
+Knowledge folders describe the problem a note answers. Question documents use
+the dedicated knowledge-base question root."""
 from __future__ import annotations
 
 import re
@@ -18,7 +16,7 @@ RAG = ("数据准备", "检索与重排", "生成与评测", "Agentic RAG")
 QUESTION_TOPICS = ("大模型基础", "Prompt与推理", "RAG", "Agent", "训练与微调", "推理与部署",
                    "评测与安全", "系统设计与工程", "项目与表达")
 BAD_PART = re.compile(r'[\\/:*?"<>|\[\]#^\x00-\x1f]')
-SOURCE_WORDS = ("抖音", "KI", "DY", "视频", "文章", "图文")
+SOURCE_WORDS = ("抖音", "视频", "文章", "图文")
 
 
 def validate_category(category: list[str]) -> list[str]:
@@ -30,7 +28,7 @@ def validate_category(category: list[str]) -> list[str]:
         raise ValueError("主题目录名无效")
     if category[0] == QUESTION_ROOT:
         raise ValueError("知识笔记不能放入面试题库；面试题目文档单独提交")
-    if category[0] == ROOT or any(part in ("抖音", "KI", "DY", "视频", "文章", "面试") for part in category):
+    if category[0] == ROOT or any(part in ("抖音", "视频", "文章", "面试") for part in category):
         raise ValueError("来源、媒体形式与面试不能作为主题目录")
     if category[:2] == ["AI", "Agent"]:
         if len(category) < 3 or category[2] not in AGENT:

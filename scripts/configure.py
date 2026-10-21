@@ -26,7 +26,7 @@ def configure(args, root=ROOT):
         raise ValueError("config.json 已存在；请备份后手工更新，不自动覆盖个人配置")
     config = json.loads((root / "config.example.json").read_text(encoding="utf-8"))
     config.update(vault=str(vault), cache_dir=str(root / ".cache"),
-                  python=os.path.abspath(sys.executable), shared_cache_dirs=[])
+                  python=os.path.abspath(sys.executable), material_cache_dirs=[])
     if args.no_browser:
         if args.chrome_profile or args.chrome_cache:
             raise ValueError("--no-browser 不能与 Chrome 路径同时使用")

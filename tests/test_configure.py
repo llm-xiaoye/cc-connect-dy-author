@@ -38,7 +38,7 @@ class ConfigureTests(unittest.TestCase):
         result = configure.configure(self.args(cc_workspace=str(self.workspace)), self.root)
         config = json.loads((self.root / "config.json").read_text())
         self.assertEqual(config["vault"], str(self.vault))
-        self.assertEqual(config["shared_cache_dirs"], [])
+        self.assertEqual(config["material_cache_dirs"], [])
         self.assertIsNone(config["browser"])
         self.assertEqual((self.root / "config.json").stat().st_mode & 0o777, 0o600)
         self.assertEqual(Path(result["skill_link"]).resolve(), self.root)

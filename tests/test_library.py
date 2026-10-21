@@ -52,7 +52,7 @@ class LibraryTests(unittest.TestCase):
                 self.save(A)
         self.assertEqual((index.read_bytes(), log.read_bytes()), before)
         self.assertFalse(library.find_existing(self.vault, A))
-        self.assertFalse((self.vault / ".dy-transaction.json").exists())
+        self.assertFalse((self.vault / ".dy-author-transaction.json").exists())
 
     def test_source_url_required_and_must_match(self):
         with self.assertRaisesRegex(ValueError, "原作品链接"):

@@ -13,7 +13,7 @@ DYA="<当前 skill 真实绝对目录>/scripts/dy_author.py"
 
 1. `"$PY" -B "$DYA" init` → 记下 `run_dir`、`input_file`。
 2. 用写文件工具把当前完整用户请求（含 `/dy-author` 或 `$dy-author` 前缀）原样写入 `input_file`，读回确认。仅当当前消息确是 cc-connect 展开的 `/dy-author` 命令时，从本轮 `DYA_RAW_ARGUMENTS_BEGIN` 后取原始参数，以 `/dy-author` + 换行 + 原始参数写入文件。禁止从历史消息借用命令，禁止为普通分享补前缀。
-3. `"$PY" -B "$DYA" plan --run RUN_DIR`。脚本先核验显式命令；`AUTHOR_SCOPE_REQUIRES_EXPLICIT_COMMAND` 时结束作者流程，普通分享交给 `/dy` 处理本次作品，不翻主页。已规划批次也核验输入前缀与原始 SHA-256，不能通过重用旧 run_dir 绕过。旧无前缀批次保留保存结果与草稿；继续全量需要当前显式命令建立新批次，已入库作品会被去重。
+3. `"$PY" -B "$DYA" plan --run RUN_DIR`。脚本先核验显式命令；`AUTHOR_SCOPE_REQUIRES_EXPLICIT_COMMAND` 时结束作者流程并说明所需命令，不翻主页。已规划批次也核验输入前缀与原始 SHA-256，不能通过重用旧 run_dir 绕过。旧无前缀批次保留保存结果与草稿；继续全量需要当前显式命令建立新批次，已入库作品会被去重。
    - 作者模式：解析链接 → 取作者 → 用固定版本 F2 翻主页（每页 20，页间 2 秒）→ 按 `aweme_id` 扫全库去重 → 排除作者文档记录的“跳过”→ 写 `抖音作者/<昵称>.md`。
    - `source_complete=false`：清单不完整，照常导入已取到的作品，最后说明原因。
    - `author=null`：作者无法核实，只处理输入作品，不写作者文档。

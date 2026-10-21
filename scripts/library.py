@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-"""dy-author vault writes: vault-wide dedup scan, note rendering, KI/DY shared locks.
+"""dy-author vault writes: work-ID deduplication, note rendering and atomic commits.
 
-Copied from douyin-to-obsidian and pruned to the import path. Lock names, the
-transaction journal and the catalog rendering are the shared vault contract; they
-must stay byte-compatible with /dy and /ki so the writers can run concurrently.
-"""
+This package owns its catalog readers, file locks and transaction journal."""
 from __future__ import annotations
 
 import base64
@@ -195,9 +192,9 @@ def new_path(vault, config, analysis, occupied=()):
 
 
 def metadata_changes(vault, config, changes, events, extra_index=(), extra_logs=()):
-    """Render the two shared catalogs; only the unified KI/DY layout is supported."""
+    """Render this skill's knowledge index and import history."""
     if not config.get("unified_only"):
-        raise ValueError("dy-author 只支持 KI/DY 共用总览（unified_only=true）。")
+        raise ValueError("dy-author 使用知识总索引和导入总日志，请设置 unified_only=true。")
     import unified_store
     rows = scan(vault, changes)
     return unified_store.dy_changes(vault, config, changes, events, rows,
@@ -222,11 +219,11 @@ def atomic_write(path, content, exclusive=False):
 
 @contextmanager
 def locked(vault):
-    # KI obtains this lock before its own lock too. Catalog writes are serialized.
+    # Serialize catalog writes before acquiring this package's note lock.
     with inside(vault, ".unified-catalog.lock").open("a") as shared:
         fcntl.flock(shared, fcntl.LOCK_EX)
         try:
-            with inside(vault, ".dy-library.lock").open("a") as f:
+            with inside(vault, ".dy-author-library.lock").open("a") as f:
                 fcntl.flock(f, fcntl.LOCK_EX)
                 try:
                     marker = Path(vault).resolve() / ".knowledge-migration-in-progress.json"
@@ -242,7 +239,7 @@ def locked(vault):
 
 
 def recover(vault):
-    journal = inside(vault, ".dy-transaction.json")
+    journal = inside(vault, ".dy-author-transaction.json")
     if not journal.exists():
         return
     data = json.loads(journal.read_text())
@@ -264,7 +261,7 @@ def recover(vault):
 
 
 def transact(vault, changes):
-    journal = inside(vault, ".dy-transaction.json")
+    journal = inside(vault, ".dy-author-transaction.json")
     records = []
     for path, after in changes.items():
         path = inside(vault, path.relative_to(vault))

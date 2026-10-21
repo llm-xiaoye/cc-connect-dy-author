@@ -1,5 +1,5 @@
 ---
-description: 仅显式 /dy-author 命令执行作者全量入库；普通作品链接或分享文本只按 /dy 导入本次作品
+description: 仅显式 /dy-author 命令执行作者全量入库；普通作品链接或分享文本不会触发作者任务
 argument-hint: <抖音链接或分享文本 | 补录>
 disable-model-invocation: true
 ---

@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""dy-author media pipeline: fetch one Douyin work, extract evidence locally, save a note.
-
-Copied from douyin-to-obsidian (revise/review/archive paths removed). The calling
-agent writes the knowledge from the full evidence; this script never invents one
-and never sends audio to a cloud transcription service.
-"""
+"""Prepare dy-author source material and validate knowledge-note drafts."""
 from __future__ import annotations
 
 import argparse
@@ -433,7 +428,7 @@ SKELETON_SUBSECTIONS = ("补充知识", "纠错与边界", "模型判断")
 
 
 def validate_note_skeleton(body, title, analysis_data=None):
-    """New knowledge-note layout shared by dy-author and /dy (see references/knowledge-notes.md)."""
+    """Knowledge-note layout defined in references/knowledge-notes.md."""
     text = re.sub(r"\A# [^\n]+\n*", "", body.strip()).strip()
     blocks = markdown_blocks(text)
     if any(level == 1 for level, _, _ in blocks):

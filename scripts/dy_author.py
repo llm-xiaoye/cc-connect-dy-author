@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
-"""/dy-author queue: one work -> its author's full public works -> dedup -> import.
+"""/dy-author queue: identify an author, list public works, deduplicate, and import.
 
-Also `/dy-author 补录`: add interview-type knowledge notes that are already in the
-vault (for example imported by /dy) to 知识库/面试题库.
-
-Adapted from douyin-to-obsidian/dy.py; runs independently of that skill. The
-current agent writes each knowledge note / question document; no timers or model
-subprocesses are created. Vault notes (aweme_id) remain the dedup source of truth.
-"""
+The current agent writes knowledge notes and question documents. The scripts
+prepare source material and commit validated files. The explicit supplement
+command adds interview questions from existing vault notes."""
 from __future__ import annotations
 
 import argparse
@@ -96,7 +92,7 @@ def parse_input(raw):
     text = raw.strip()
     command = re.match(r"^[/$]dy-author(?:\s+|$)", text)
     if command is None:
-        raise ValueError("AUTHOR_SCOPE_REQUIRES_EXPLICIT_COMMAND：作者全量导入必须显式使用 /dy-author；裸抖音作品或分享文本只交给 /dy 处理本次链接。")
+        raise ValueError("AUTHOR_SCOPE_REQUIRES_EXPLICIT_COMMAND：作者全量导入必须在当前请求中显式使用 /dy-author；普通作品链接或分享文本不会触发作者任务。")
     text = text[command.end():].strip()
     if not text:
         raise ValueError("用法：/dy-author 抖音作品链接或完整分享文本；/dy-author 补录。")
@@ -252,8 +248,8 @@ def plan(run, state, config):
 
 
 def raw_material(vid, config):
-    """Read-only original evidence for an existing note (own cache, then shared /dy cache)."""
-    roots = [config.get("cache_dir")] + list(config.get("shared_cache_dirs") or [])
+    """Read verified original evidence from the configured material directories."""
+    roots = [config.get("cache_dir")] + list(config.get("material_cache_dirs") or [])
     for root in roots:
         if not root:
             continue

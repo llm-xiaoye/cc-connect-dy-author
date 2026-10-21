@@ -1,4 +1,4 @@
-"""Import-state helpers shared with /dy's `.dy-review-state.json` (copied, pruned)."""
+"""Import-state helpers for dy-author source metadata and review records."""
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
-STATE_FILE = ".dy-review-state.json"
+STATE_FILE = ".dy-author-review-state.json"
 
 
 def display_time(value):
@@ -37,8 +37,8 @@ def source_url(value, vid):
 
 
 def cached_source(config, vid):
-    """Own cache first, then the configured read-only project cache used by /dy (data only)."""
-    roots = [config.get("cache_dir")] + list(config.get("shared_cache_dirs") or [])
+    """Read matching source metadata from the configured material directories."""
+    roots = [config.get("cache_dir")] + list(config.get("material_cache_dirs") or [])
     for root in roots:
         if not root:
             continue

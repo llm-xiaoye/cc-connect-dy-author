@@ -1,7 +1,7 @@
 {
   "vault": "/absolute/path/to/your/ObsidianVault",
   "cache_dir": "/absolute/path/to/dy-author/.cache",
-  "shared_cache_dirs": [],
+  "material_cache_dirs": [],
   "python": "/absolute/path/to/dy-author/.venv/bin/python",
   "browser": "chrome",
   "browser_profile": "/absolute/path/to/Chrome/Default",
@@ -16,7 +16,7 @@
   "prepare_batch": 10,
   "asr_model": "mlx-community/whisper-small-mlx",
   "notes_dir": "知识库",
-  "review_state_file": ".dy-review-state.json",
+  "review_state_file": ".dy-author-review-state.json",
   "attachments_dir": "附件",
   "authors_dir": "抖音作者",
   "question_root": "面试题库",

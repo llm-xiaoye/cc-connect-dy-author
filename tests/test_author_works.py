@@ -193,7 +193,7 @@ class AuthorWorksTests(unittest.IsolatedAsyncioTestCase):
 
 
 class IndependenceTests(unittest.TestCase):
-    def test_scripts_do_not_import_or_reference_other_skills(self):
+    def test_scripts_import_only_bundled_or_declared_modules(self):
         import ast
         import sys
         scripts = Path(works.__file__).resolve().parent
@@ -206,10 +206,6 @@ class IndependenceTests(unittest.TestCase):
                           "huggingface_hub", "numpy", "PIL", "imageio_ffmpeg", "brotli"} | sys.stdlib_module_names
         for path in scripts.glob("*.py"):
             tree = ast.parse(path.read_text(encoding="utf-8"))
-            docstrings = {id(node.body[0].value) for node in ast.walk(tree)
-                          if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
-                          and node.body and isinstance(node.body[0], ast.Expr)
-                          and isinstance(node.body[0].value, ast.Constant)}
             for node in ast.walk(tree):
                 names = []
                 if isinstance(node, ast.Import):
@@ -219,9 +215,6 @@ class IndependenceTests(unittest.TestCase):
                 for name in names:
                     with self.subTest(file=path.name, module=name):
                         self.assertIn(name, own | stdlib_or_deps)
-                if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in docstrings:
-                    for needle in ("douyin-to-obsidian", "douyin-author-links"):
-                        self.assertNotIn(needle, node.value, path.name)
                 if isinstance(node, ast.Attribute) and node.attr == "path" and isinstance(node.value, ast.Name) \
                         and node.value.id == "sys":
                     self.fail(f"{path.name} manipulates sys.path")
@@ -230,7 +223,7 @@ class IndependenceTests(unittest.TestCase):
         config = json.loads((Path(works.__file__).resolve().parents[1] / "config.example.json").read_text())
         self.assertTrue(config["python"].endswith("/dy-author/.venv/bin/python"))
         self.assertTrue(config["cache_dir"].endswith("/dy-author/.cache"))
-        self.assertEqual(config["shared_cache_dirs"], [])
+        self.assertEqual(config["material_cache_dirs"], [])
         self.assertTrue(config["unified_only"])
 
 

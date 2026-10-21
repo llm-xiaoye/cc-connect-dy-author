@@ -7,7 +7,7 @@
 | `vault` | 已有 Obsidian Vault 的绝对路径；写入目标。必须可读写。 |
 | `python` | 本技能虚拟环境的 Python 绝对入口，配置器取当前 `sys.executable`。不要写另一个技能或他人的 Python。 |
 | `cache_dir` | 个人运行材料/状态目录，默认仓库下 `.cache`；不要放在公开同步目录。 |
-| `shared_cache_dirs` | 可选的既有兼容材料缓存，默认空；不依赖 `/dy` 的缓存。只加入自己明确授权的路径。 |
+| `material_cache_dirs` | 可选的原始材料目录，默认空；补录时只读检索作品 ID 一致的 bundle.json 与 transcript.json。只加入自己明确授权的路径。 |
 | `browser` | `chrome`；无浏览器模式为 JSON `null`。 |
 | `browser_profile` | Chrome 的完整 profile 目录，须与实际 Cookie 读取/页面打开使用的资料一致。 |
 | `browser_cache_dir` | 同一资料的 `Cache_Data`；标准 macOS 路径一般为 `~/Library/Caches/Google/Chrome/<资料名>/Cache/Cache_Data`，实际配置使用展开后的绝对路径。 |
@@ -24,7 +24,7 @@
 | `attachments_dir` | 默认 `附件`，Vault 内图片附件相对目录。 |
 | `authors_dir` | 默认 `抖音作者`，作者文档相对目录。 |
 | `question_root` | 默认 `面试题库`，置于 `notes_dir` 内；写作规则使用此默认分类名称，首次安装建议保留。 |
-| `review_state_file` | 默认 `.dy-review-state.json`，Vault 内的学习/审核状态文件。 |
+| `review_state_file` | 默认 `.dy-author-review-state.json`，Vault 内的学习/审核状态文件。 |
 | `unified_only` | 保持 `true`，使用现有统一索引和日志格式。 |
 | `cc_binary` | 可选 cc-connect 可执行文件的绝对路径；未填时尝试 `~/.local/bin/cc-connect`。建议明确填写。 |
 | `cc_data_dir` | 可选 cc-connect 当前服务的实际 data-dir；未填时使用 `~/.cc-connect`。须与该服务一致。 |

@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""KI/DY's two visible Markdown catalogs (copied from douyin-to-obsidian).
-
-Parsing and rendering must remain byte-identical to /dy and /ki; dy-author only
-adds rows for its question documents through the same renderers.
-"""
+"""Read and update dy-author knowledge catalogs and interview-question records."""
 from __future__ import annotations
 
 import hashlib
@@ -122,7 +118,7 @@ def _read_log(raw: str) -> list[list[str]]:
     lines = raw.splitlines()
     if not lines or lines[0] != "# 导入总日志":
         raise ValueError("导入总日志标题无效")
-    declared = re.search(r"^共 (\d+) 条：KI (\d+) 条，DY (\d+) 条。", raw, re.M)
+    declared = re.search(r"^共 (\d+) 条(?:[：。].*)?$", raw, re.M)
     if not declared:
         raise ValueError("导入总日志计数缺失")
     header, rows = None, []
@@ -138,7 +134,7 @@ def _read_log(raw: str) -> list[list[str]]:
                 if not header or len(row) != len(header):
                     raise ValueError("导入总日志分隔行位置无效")
             else:
-                if not header or len(row) != len(header) or row[1] not in ("KI", "DY") or not re.match(r"^\d{4}-\d{2}-\d{2}", row[0]):
+                if not header or len(row) != len(header) or not row[1] or not re.match(r"^\d{4}-\d{2}-\d{2}", row[0]):
                     raise ValueError("导入总日志事件结构无效")
                 # Two historical rows have no live note link. Keep their cells verbatim.
                 if row[3].startswith("["):
@@ -146,7 +142,7 @@ def _read_log(raw: str) -> list[list[str]]:
                 rows.append(log_row(row))
         elif line and not (line.startswith("共 ") or line.startswith("原始记录：") or line.startswith("其中 ")):
             raise ValueError("导入总日志包含未识别的正文，未覆盖")
-    if (len(rows), sum(row[1] == "KI" for row in rows), sum(row[1] == "DY" for row in rows)) != tuple(map(int, declared.groups())):
+    if len(rows) != int(declared.group(1)):
         raise ValueError("导入总日志事件计数不符")
     return rows
 
@@ -174,9 +170,8 @@ def render_index(rows: list[dict]) -> bytes:
 
 def render_log(rows: list[list[str]]) -> bytes:
     rows = [log_row(row) for row in rows]
-    ki_count = sum(row[1] == "KI" for row in rows)
     lines = ["# 导入总日志", "",
-             f"共 {len(rows)} 条：KI {ki_count} 条，DY {len(rows) - ki_count} 条。按时间由近到远排列。", "",
+             f"共 {len(rows)} 条。按时间由近到远排列。", "",
              "| " + " | ".join(LOG_HEADERS) + " |", "| " + " | ".join(["---"] * len(LOG_HEADERS)) + " |"]
     for row in sorted(rows, key=lambda item: item[0], reverse=True):
         lines.append("| " + " | ".join(row) + " |")
@@ -190,7 +185,7 @@ def validate_rendered(index: bytes, log: bytes, index_count: int, log_count: int
 
 def dy_changes(vault: Path, config: dict, changes: dict, events: list[dict],
                dy_rows: list[dict], *, extra_index=(), extra_logs=()) -> tuple[Path, Path]:
-    """Same algorithm as /dy; extra_index/extra_logs carry question-document rows.
+    """Update note catalogs; extra_index/extra_logs carry question-document rows.
 
     extra_index items are {"path", "cells"} that replace any row with that path;
     extra_logs items are complete 8-cell DY log rows appended as new events.
@@ -271,7 +266,6 @@ def check(vault: Path) -> dict:
     index, logs = load(vault)
     missing = sum(not (vault / row["path"]).is_file() for row in index)
     return {"status": "ok", "changed": False, "index_count": len(index),
-            "log_count": len(logs), "ki_log_count": sum(row[1] == "KI" for row in logs),
-            "dy_log_count": sum(row[1] == "DY" for row in logs),
+            "log_count": len(logs),
             "missing_index_notes": missing, "index": str(vault / INDEX_NAME),
             "log": str(vault / LOG_NAME)}

@@ -63,7 +63,7 @@ def make_vault(root: Path) -> Path:
 def make_config(root: Path, vault: Path, **extra) -> dict:
     config = {"vault": str(vault), "cache_dir": str(root / "cache"), "notes_dir": "知识库",
               "unified_only": True, "attachments_dir": "附件", "authors_dir": "抖音作者",
-              "question_root": "面试题库", "review_state_file": ".dy-review-state.json",
+              "question_root": "面试题库", "review_state_file": ".dy-author-review-state.json",
               "asr_model": "fixture", "browser": None, "prepare_workers": 1, "prepare_batch": 10}
     config.update(extra)
     return config

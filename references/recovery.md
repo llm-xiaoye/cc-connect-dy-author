@@ -1,6 +1,6 @@
 # 作品详情、Cookie 与媒体下载的自动恢复
 
-> 本文从 douyin-to-obsidian 复制并按 dy-author 调整：缓存目录为 `.cache/dy-author/`，入口为 `dy_author.py prepare-all`。F2 固定在包含 #443 网关头修复的开发分支（x-tt-argus / uifid），之前的“主页接口 403 Uifid Not Found”由它处理；若再次出现 403，如实报告为清单或详情获取失败，不编造签名、不反复重试。
+> 本技能的材料缓存目录由 config.json 的 cache_dir 指定，队列入口为 `dy_author.py prepare-all`。F2 版本由 requirements.lock.txt 固定，包含网关头修复（x-tt-argus / uifid）；若出现 403，如实报告为清单或详情获取失败，不编造签名、不反复重试。
 
 遇到 Fresh cookies、需要刷新 Cookie、空详情、没有匹配作品或 detail 失败时，先执行本流程，不直接让用户导出 Cookie、运行命令或下载视频。
 
@@ -22,7 +22,7 @@ HTTP 恢复记录在 .cache/dy-author/<作品ID>/recovery/<独立编号>.json，
 
 ## dy_author.py 自动打开真实浏览器并重试一次
 
-2026-09-16 起，这一步由队列的 prepare_item 执行（dy_author.py 沿用 /dy 的同一机制），不依赖模型或 MCP 是否记得操作浏览器，也不再由 agent 另建恢复批次。
+这一步由队列的 prepare_item 执行，不依赖模型或 MCP 是否记得操作浏览器，也不由 agent 另建恢复批次。
 
 1. 首轮返回 DETAIL_UNAVAILABLE 时，先把首次失败和 browser_recovery.attempted=true 写入原批次 state.json，再执行后续动作。进程中断后继续同一批次，也不能重复打开浏览器。
 2. browser_profile 应固定为安装者确认的 `config.json` 中由安装者指定的 Chrome profile 绝对路径。macOS 直接调用 Chrome 可执行文件，以独立 argv 传入其父目录 `--user-data-dir`、资料名 `--profile-directory=Default` 和规范作品页；不依赖当前活动窗口选择资料。Cookie 读取（视频、图文、收藏夹）也使用同一完整资料路径，browser_cache_dir 对应 `~/Library/Caches/Google/Chrome/Default/Cache/Cache_Data`。资料目录缺失时明确报错，不自动新建或切换资料。未配置 browser_profile 的旧批次仍使用原 LaunchServices 行为；配置在 init 时快照，新绑定用于新批次。默认等待 8 秒，重新执行 prepare 并先读取新收到的官方详情缓存。2026-09-20 起，首次缓存读取未命中时，再在默认 40 秒的统一截止时间内等待迟到响应；每轮刷新文件索引，扫描与读取共用剩余预算，命中立即继续，不再次打开浏览器、不调用模型。预算耗尽才进入 HTTP 恢复。只打开页面，不点击、不输入、不启用远程调试、不导出 Cookie，也不操作登录或验证码。close_opened_tabs=true 时，打开前用 osascript 记下已在显示该作品的标签页 ID，本条读完（成功或失败）后只关闭新出现的、网址含 douyin.com 与该作品 ID 的标签页；作品 ID 与标签页 ID 以 argv 传入、脚本不会启动 Chrome。首次使用 macOS 会询问是否允许控制 Google Chrome；未授权、超时或 Chrome 未运行时不关闭任何标签页，也不影响本条结果，state.json 的 browser_recovery.opened_tab_closed 记为 unavailable。

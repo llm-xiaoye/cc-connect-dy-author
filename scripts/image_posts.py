@@ -1,7 +1,4 @@
-"""Douyin image post extraction and local Apple Vision OCR; no music ASR.
-
-Copied from douyin-to-obsidian; the bundle additionally keeps the verified author sec_uid.
-"""
+"""Prepare image-post evidence and retain the verified author sec_uid."""
 from __future__ import annotations
 
 import asyncio

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """List one Douyin work's author and every publicly visible work (videos and image posts).
 
-Ported from douyin-author-links/list_links.py into dy-author (no runtime link to it).
-Differences: image posts are kept as /note/ items, image seeds are accepted, and the
-pinned F2 dev branch adds the x-tt-argus/uifid gateway headers (issue #443).
+Video and image-post seeds are accepted; image works retain their /note/ URLs.
+The F2 version pinned by this package provides x-tt-argus/uifid gateway headers.
 """
 from __future__ import annotations
 
