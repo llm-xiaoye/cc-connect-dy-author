@@ -26,6 +26,10 @@ description: 仅在当前消息显式使用 /dy-author 或 $dy-author 时执行�
 
 读 [references/workflow.md](references/workflow.md)，按其中命令执行：`init → 写 input.txt → plan → 循环（prepare-all → 逐条写作 → commit）→ status`。
 
+默认先只读检查真实系统用户的 Chrome 资料与现有抖音会话，优先复用可用会话，不要求保持抖音页面打开。`init` 返回的 `browser_session.status` 为 `login_required` 或 `profile_unavailable` 时，转述其提示，请用户手动在 Chrome 打开抖音并登录后再继续；`read_error` 时说明读取授权或资料路径问题，不能断言已退出登录。`available` 仅表示已读到会话信息，不能把后续网络、接口或缓存失败说成登录失效。
+
+默认 `auto_browser_recovery=false`，作者清单获取和逐条下载都不自动打开作品页。禁止因抓取失败自行打开页面或改成 `true`；只有用户明确要求可见浏览器恢复时才启用。当前关闭设置也约束旧批次。缺少会话或读取失败时停止准备，不批量记作品失败；已提交笔记与草稿保留，已完成草稿仍可提交。
+
 - 将当前完整请求（含 `/dy-author` 或 `$dy-author` 前缀）用写文件工具原样写进 `input_file`；cc-connect 当前展开的命令按 workflow.md 保留前缀。不要把用户文本、标题或转写拼进 shell 命令。
 - 每条 ready：
   - 续跑时 `draft_files_present=true` 先尝试 commit，成功就处理下一条；校验不通过只修正明确错误。部分草稿已存在时仅补缺失内容，不重下载、重转写或无条件重写已完成正文。文件存在不等于已保存，仍以 commit 成功为准。

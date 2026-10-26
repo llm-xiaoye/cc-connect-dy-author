@@ -11,7 +11,7 @@ DYA="<当前 skill 真实绝对目录>/scripts/dy_author.py"
 
 ## 1. 固定输入
 
-1. `"$PY" -B "$DYA" init` → 记下 `run_dir`、`input_file`。
+1. `"$PY" -B "$DYA" init` → 记下 `run_dir`、`input_file`，检查 `browser_session`。`available` 复用现有会话；`login_required`/`profile_unavailable` 提醒用户手动在 Chrome 登录抖音后继续，`read_error` 提示检查读取权限或资料路径。默认不会打开任何页面，不把 Cookie 输出给用户。补录无需浏览器会话。
 2. 用写文件工具把当前完整用户请求（含 `/dy-author` 或 `$dy-author` 前缀）原样写入 `input_file`，读回确认。仅当当前消息确是 cc-connect 展开的 `/dy-author` 命令时，从本轮 `DYA_RAW_ARGUMENTS_BEGIN` 后取原始参数，以 `/dy-author` + 换行 + 原始参数写入文件。禁止从历史消息借用命令，禁止为普通分享补前缀。
 3. `"$PY" -B "$DYA" plan --run RUN_DIR`。脚本先核验显式命令；`AUTHOR_SCOPE_REQUIRES_EXPLICIT_COMMAND` 时结束作者流程并说明所需命令，不翻主页。已规划批次也核验输入前缀与原始 SHA-256，不能通过重用旧 run_dir 绕过。旧无前缀批次保留保存结果与草稿；继续全量需要当前显式命令建立新批次，已入库作品会被去重。
    - 作者模式：解析链接 → 取作者 → 用固定版本 F2 翻主页（每页 20，页间 2 秒）→ 按 `aweme_id` 扫全库去重 → 排除作者文档记录的“跳过”→ 写 `抖音作者/<昵称>.md`。
@@ -37,7 +37,7 @@ while True:
 ```
 
 - cc-connect：`--notify` 使用明确的 `CC_PROJECT` 与 `CC_SESSION_KEY`，使用本目录 config.json 中配置的 cc_binary 与 cc_data_dir，不默认选择其他活跃会话。`notification.status=sent` 时提示已发出；`already_attempted` 时不重复发送或回复。其他状态用正常回复补充一行，并继续下一批。发送超时状态未知，不自动重发；提示失败不回滚笔记。Codex 桌面没有这些环境变量时只返回进度，由正常回复展示。
-- `prepare-all` 负责下载、Chrome 缓存读取、后台详情请求、每条最多一次浏览器恢复（打开的标签页读完即关）、音轨校验、本地 ASR/OCR，全部由脚本完成。命令耗时较长属正常；不要并行启动第二个 prepare-all。
+- `prepare-all` 负责下载、Chrome 缓存读取、后台详情请求、音轨校验、本地 ASR/OCR，默认不打开浏览器页面。仅用户明确启用 `auto_browser_recovery=true` 时才允许每条最多一次可见恢复。命令耗时较长属正常；不要并行启动第二个 prepare-all。`CHROME_SESSION_*` 是批次准备条件未满足，提示用户后保留原批次，不把所有待处理作品标为失败。
 - 调用 `prepare-all` 时把命令超时设为宿主允许的最大值（Kiro 为 1800000 毫秒）。若仍被宿主超时中断，已完成的条目有检查点，直接对同一 `run_dir` 再执行一次；反复超时保留同一 run_dir 与十条批次的检查点，报告真实中断；禁止删除重建或重复处理已保存条目。`plan` 翻主页约需 1 分钟，也给足超时。
 - 每条 ready：Read 完整 `material_file`；图文用图片工具逐页看 `image_files`；从完整材料提取 3–10 个核心主题/技术概念（含同义词）写入 `item_dir/catalog-terms.txt`，执行 `catalog-search --run RUN_DIR --id ID`；只 Read 刷新后的 `catalog_file` 目录树，面试类另读 `question_catalog_file`。检索结果已返回就不重读 matches 文件；候选不足、`has_more=true` 或主题未覆盖时，换同义词/细化术语再次检索，或提高候选 limit。词命中不代表语义相同，不以无命中断言全库没有相关题目；合并前仍读目标全文并使用候选 sha256。按 [knowledge-notes.md](knowledge-notes.md) 写正文，面试类再按 [interview-notes.md](interview-notes.md) 写题。
 - 只有配乐、没有可提炼的讲解：把原因写入 `reason_file`，`skip --run RUN_DIR --id ID`（作者文档记为跳过，以后不再处理）。

@@ -29,10 +29,10 @@ def main():
             issues.append(f"{key} 目录不可用")
     if config.get("python") != os.path.abspath(sys.executable):
         issues.append("当前解释器入口与 config.json 的 python 不一致")
-    if config.get("browser"):
-        for key in ("browser_profile", "browser_cache_dir"):
-            if not isinstance(config.get(key), str) or not Path(config[key]).is_dir():
-                issues.append(f"{key} 目录不可用")
+    import chrome_session
+    config, session = chrome_session.resolve_config(config)
+    if session["status"] not in ("available", "disabled"):
+        issues.append(session["message"])
     modules = {name: importlib.util.find_spec(name) is not None for name in
                ("yaml", "PIL", "f2", "yt_dlp", "mlx_whisper", "browser_cookie3", "imageio_ffmpeg")}
     issues.extend(f"缺少依赖模块：{name}" for name, present in modules.items() if not present)
@@ -40,6 +40,7 @@ def main():
         issues.append("缺少 Swift：请安装 Apple Command Line Tools")
     print(json.dumps({"status": "ready" if not issues else "needs_setup", "issues": issues,
                       "dependency_modules_present": modules,
+                      "browser_session": session,
                       "scope": "local_paths_and_dependency_discovery_only_not_live_Douyin_test"}, ensure_ascii=False))
     return 1 if issues else 0
 

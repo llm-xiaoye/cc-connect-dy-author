@@ -1,47 +1,37 @@
-# 作品详情、Cookie 与媒体下载的自动恢复
+# Chrome 会话与静默媒体获取
 
-> 本技能的材料缓存目录由 config.json 的 cache_dir 指定，队列入口为 `dy_author.py prepare-all`。F2 版本由 requirements.lock.txt 固定，包含网关头修复（x-tt-argus / uifid）；若出现 403，如实报告为清单或详情获取失败，不编造签名、不反复重试。
+默认 `auto_browser_recovery=false`。作者清单和逐条材料获取都只读现有 Chrome 会话、缓存与后台接口，不打开作品页、不启动 Chrome、不要求保持抖音标签页打开。不得为抓取失败自行改成可见浏览器恢复。
 
-遇到 Fresh cookies、需要刷新 Cookie、空详情、没有匹配作品或 detail 失败时，先执行本流程，不直接让用户导出 Cookie、运行命令或下载视频。
+## 先检查已有会话
 
-## 先区分提示与事实
+`configure.py`、`dy_author.py init` 先检查真实操作系统用户的 Chrome 资料；即使 zcode 改写 HOME，也不使用应用沙箱中的假 Chrome 路径。未指定 browser_profile 时，按 Chrome Local State 的近期资料顺序检查，优先选择能读到抖音会话的资料；Cookie 与缓存绑定到同一 profile。指定 profile 时遵守该路径，不自动切换。Cookie 只在内存中使用，不显示、不保存。
 
-当前 yt-dlp 的 Douyin 提取器在旧详情接口没有返回 aweme_detail 时，会统一提示 Fresh cookies；这不等于已经证明登录失效。可能是游客会话失效、请求签名/接口兼容问题、限流，也可能是作品确实不可访问。缺少匹配材料时仍不入库，不能用标题、页面章节要点或模型常识替代完整音轨/图片。
+- `available`：读到未过期的抖音会话标记，直接复用；服务器是否接受仍由后续请求确认。
+- `login_required`：没有读到会话。提示用户手动在对应 Chrome 资料中打开 https://www.douyin.com/ 登录后重试，不自动弹页。
+- `profile_unavailable`：找不到 Chrome 资料。提示先使用 Chrome 登录抖音；自定义资料需配置完整 browser_profile。
+- `read_error`：读取授权、Cookie 数据库或路径出现问题。只报告错误类别，请用户检查读取权限和资料路径；不能断言已退出登录。
 
-## 脚本已经自动执行的步骤
+`plan/next/prepare-all` 会重检会话；条件未满足时在准备前停止并保留队列，不把待处理作品批量记为失败。commit 与已有草稿不依赖这一步；此前已保存的笔记不会回滚。当前配置关闭自动开页时，旧批次快照中的 true 也不能启用它。
 
-正常使用 dy_author.py 队列，无需增加参数：
+## 后台获取
 
-1. 优先复用哈希与时长校验通过的完整音轨。否则 browser_cache.py 只读 Chrome 最近收到的官方详情响应，支持实际观察到的 www.douyin.com 和 www-hj.douyin.com；请求与响应的作品 ID 必须一致，缓存结构、CRC、key SHA 和解压完整性必须通过。不会重放请求签名或导出 Cookie。配置 browser_cache_dir 可指定 Chrome 的 Cache_Data 目录；默认使用 macOS Chrome Default。
-2. 默认配置采用 background_detail_first（prefer_browser_media=false）：没有匹配缓存时，先在后台由 douyin_access.recover_detail 用固定资料的 Cookie 调 F2（含一次进程内会话刷新与公开分享页），取得与作品 ID 匹配的同一份详情 JSON 后，照旧用 download_video 下载该作品的播放地址，bundle 记 media_route=background_detail；作者 sec_uid、音轨校验与 Chrome 路线完全相同。后台仍取不到才进入下面的浏览器恢复（打开页面 → 读缓存 → yt-dlp → F2）。显式 HTTP 429 直接停止，不开页面。
-3. 仍无匹配详情时，在同一内存 CookieJar 中访问目标官方页面，接收新的 Set-Cookie，再调用一次 F2。这里刷新的是请求进程内的会话；没有执行网页 JavaScript，也不修改浏览器 Cookie 数据库。
-4. 仍失败时，用独立匿名会话读取官方移动分享页，只解析其 JSON 中匹配 ID 的完整媒体详情。分享页有时也不提供媒体，这条回退不保证成功。
-5. 取得视频详情就下载该作品 video 字段中的播放地址，再提取真实音轨；取得图文详情则下载全部图片。不会把背景音乐、封面、推荐作品作为材料。
+正常队列无需额外操作：
 
-HTTP 恢复记录在 .cache/dy-author/<作品ID>/recovery/<独立编号>.json，包含路由、结果代码、时间和作品 ID，不含 Cookie、完整响应、签名媒体 URL。浏览器成功路径记录在 bundle.json 的 media_route=chrome_received_detail。每次 prepare 最多调用两轮 F2、一次官方页面刷新、一次公开分享页；显式 HTTP 429 停止当前恢复。缓存可复用；视频还需校验解码音轨时长与详情时长一致（容差最大为 3 秒或 2%），不把截断音轨交给模型。
+1. 优先复用哈希和完整音轨时长已校验的材料；否则只读 Chrome 收到的官方详情缓存。请求与响应作品 ID 必须一致，缓存 CRC、key SHA、解压完整性必须通过。Simple Index 仅作定位线索；未知、损坏或截断索引回退原查找，不修改浏览器文件。
+2. 没有匹配缓存时，用内存 CookieJar 调固定版本 F2；必要时只在该请求进程内访问官方页面接收 Set-Cookie，并再调用一次 F2。这里不执行网页 JavaScript，不更新 Chrome Cookie 数据库。
+3. 必要时用独立匿名会话读取公开移动分享页，仅接受 JSON 中严格匹配作品 ID 的完整详情。视频只下载该作品 video 字段中的播放地址，图文下载完整图片，不把配乐、封面或推荐作品当原材料。
+4. 显式 HTTP 429 停止当前恢复；网络超时、403、空详情或 yt-dlp 的 Fresh cookies 提示本身均不能证明登录失效。默认后台路线失败后返回具体原因，不开页面，也不循环重试。
 
-## dy_author.py 自动打开真实浏览器并重试一次
+视频音轨还须解码验收，和详情时长的容差最大为 3 秒或 2%；缺少完整材料不能按标题或模型常识入库。HTTP 恢复记录仅保存作品 ID、路由、时间和结果代码，不保存 Cookie、签名媒体 URL 或完整响应。
 
-这一步由队列的 prepare_item 执行，不依赖模型或 MCP 是否记得操作浏览器，也不由 agent 另建恢复批次。
+## 仅用户明确启用的可见恢复
 
-1. 首轮返回 DETAIL_UNAVAILABLE 时，先把首次失败和 browser_recovery.attempted=true 写入原批次 state.json，再执行后续动作。进程中断后继续同一批次，也不能重复打开浏览器。
-2. browser_profile 应固定为安装者确认的 `config.json` 中由安装者指定的 Chrome profile 绝对路径。macOS 直接调用 Chrome 可执行文件，以独立 argv 传入其父目录 `--user-data-dir`、资料名 `--profile-directory=Default` 和规范作品页；不依赖当前活动窗口选择资料。Cookie 读取（视频、图文、收藏夹）也使用同一完整资料路径，browser_cache_dir 对应 `~/Library/Caches/Google/Chrome/Default/Cache/Cache_Data`。资料目录缺失时明确报错，不自动新建或切换资料。未配置 browser_profile 的旧批次仍使用原 LaunchServices 行为；配置在 init 时快照，新绑定用于新批次。默认等待 8 秒，重新执行 prepare 并先读取新收到的官方详情缓存。2026-09-20 起，首次缓存读取未命中时，再在默认 40 秒的统一截止时间内等待迟到响应；每轮刷新文件索引，扫描与读取共用剩余预算，命中立即继续，不再次打开浏览器、不调用模型。预算耗尽才进入 HTTP 恢复。只打开页面，不点击、不输入、不启用远程调试、不导出 Cookie，也不操作登录或验证码。close_opened_tabs=true 时，打开前用 osascript 记下已在显示该作品的标签页 ID，本条读完（成功或失败）后只关闭新出现的、网址含 douyin.com 与该作品 ID 的标签页；作品 ID 与标签页 ID 以 argv 传入、脚本不会启动 Chrome。首次使用 macOS 会询问是否允许控制 Google Chrome；未授权、超时或 Chrome 未运行时不关闭任何标签页，也不影响本条结果，state.json 的 browser_recovery.opened_tab_closed 记为 unavailable。
-3. 第二次仍没有匹配媒体时，返回 RECOVERY_EXHAUSTED 和明确的“抖音内容获取异常”说明，停止本条并继续队列下一条。显式 HTTP 429 直接停止，不触发浏览器恢复。不得另建批次绕过该上限。
-4. config.json 可设置 auto_browser_recovery（默认 true）、prefer_browser_media（默认 false；为 true 时恢复旧的“先开页面”顺序）、background_detail_first（默认 true）、close_opened_tabs（默认 true）、browser_recovery_wait_seconds（默认 8，范围 0–20）及 browser_media_timeout_seconds（默认 40，范围 0–40）。state.json 记录本次媒体等待上限。不支持的宿主/浏览器返回具体能力错误。单独 pipeline.py prepare 可读已有浏览器响应，但不主动开浏览器；批量自动恢复入口是 dy_author.py prepare-all。已取得匹配详情后的下载错误必须保留 download 环节，不再用后续详情接口失败掩盖它。
+只有用户明确要求时才在当前配置设置 `auto_browser_recovery=true`。`prefer_browser_media=false`、`background_detail_first=true` 仍使后台请求优先；可见恢复每条最多一次，打开前把 attempted 写入 state.json。以同一完整 profile 传入 Chrome 的 user-data-dir/profile-directory，最多等待配置的缓存预算；默认 browser_recovery_wait_seconds=8、browser_media_timeout_seconds=40。仅尝试关闭本次打开、严格匹配作品 ID 的新增标签；已有标签保留，未取得自动化授权时不关闭。
 
-state.json 保留 first_failure、开始/结束时间、打开的 URL、恢复状态及失败类别。page_state=not_observed 明确表示脚本没有观察播放器或登录状态；打开成功不能被描述为已登录、已播放或已刷新到有效 Cookie。需要进一步排错时，agent 可以通过宿主浏览器工具核对真实页面，但不能据此把失败记为媒体获取成功。
+关闭新增标签不等于没有弹窗，所以默认保持 false。脚本不点击、不输入、不操作登录或验证码。`page_state=not_observed` 只表示未观察实际页面，不能称已登录、已播放或已刷新到有效 Cookie。下载阶段失败保留 download 原因，不能用后续详情失败覆盖。
 
-## 需要用户的实际边界
+## 区分缓存查找与作品故障
 
-缓存目录较大时，旧文件的逐项 stat 和排序可能耗尽扫描预算。浏览器恢复现在先建立有界的文件名快照，打开作品后优先严格解析新出现的缓存，再回退旧缓存扫描；完整性、CRC、官方域名与作品 ID 校验不变。state.json 的 browser_recovery.cache_probe 记录实际检查数、新条目数、读取错误与扫描是否被截断，不能把扫描预算耗尽当成登录失败。缓存文件 mtime 早于失败时间也不能单独证明当时该响应已完整落盘。
+查看 cache_baseline_entries、cache_probe.scan_incomplete/deadline_reached 与 chrome_index_status。扫描未完成或超时应返回 CACHE_LOOKUP_INCOMPLETE；不能据此判作品无媒体、建议重新登录或等几天。mtime 也不能单独证明响应何时完整落盘。保留原批次和失败原因，不另建循环、不按页面摘要补写笔记。
 
-2026-09-22 起，浏览器缓存查找在新文件优先路径后读取 Chrome 自带的 Simple Index，按最近访问顺序定位响应，避免先对十万级目录逐项 stat。索引先校验格式、长度及 CRC，仅作为文件定位线索；响应仍需完整解压、CRC、官方域名和请求/响应作品 ID 一致。索引不可用则回退原查找。扫描未完成或超时返回 CACHE_LOOKUP_INCOMPLETE，不能推断作品无媒体或不兼容。
-
-连续多批 detail 失败本身不构成登录态或作品不兼容的证据。先查 cache_baseline_entries、cache_probe.scan_incomplete/deadline_reached 及 chrome_index_status；查找未完成先排查本地缓存读取。没有实际登录/验证码页面时，只报告已观察的失败及扫描记录；禁止追加“建议重新登录”“过几天再试”的猜测，也不要要求用户先手动打开才能继续诊断。用户反馈新的失败批次后，先检查对应记录与当前匹配材料，不让模型重读历史全文或按标题补写笔记。
-
-- 页面明确要求扫码、短信登录或验证码：请用户只完成该浏览器交互，完成后由 agent 继续失败作品；不让用户把 Cookie、密码或验证码粘贴到聊天里。
-- 页面明确显示已删除、私密或无访问权限：记录实际状态并停止，不反复刷新。
-- 网络超时、HTTP 429 或页面仅显示“出错了”：如实说明已观察的状态，不把它改写成登录失效；当前请求不无限重试、不创建定时任务。
-- 页面可正常播放但两层恢复仍拿不到媒体：说明是提取适配问题，保留诊断并修复可复用脚本。尚未取得完整音轨时不能靠页面摘要入库。
-
-实现参考：[yt-dlp 的 Douyin 提取器](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/tiktok.py)、[F2 官方 FAQ](https://github.com/Johnserf-Seed/f2/blob/main/docs/faq.md)。接口形状以实际响应和严格 ID 校验为准。
+只有实际观察到登录/验证码、已删除、私密或无权限页面时，才报告对应状态。页面能播放但后台无法取得完整媒体时，排查提取适配；会话标记可读不保证接口始终可用。

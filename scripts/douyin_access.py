@@ -25,6 +25,13 @@ MEDIA_LIMIT = 512 * 1024 * 1024
 
 def cookie_source(browser, profile=None):
     if profile is None:
+        if browser == "chrome":
+            from chrome_session import profile_candidates
+            profiles = profile_candidates()
+            if not profiles:
+                raise StageError("browser_profile", "找不到 Chrome 用户资料；请先手动打开 Chrome 登录抖音。",
+                                 "PROFILE_UNAVAILABLE")
+            return (browser, str(profiles[0]))
         return (browser,)
     path = Path(profile).expanduser()
     if not path.is_absolute() or not path.is_dir():

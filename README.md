@@ -40,24 +40,23 @@ cd cc-connect-dy-author
 
 ## 2. 生成你自己的配置与 cc-connect 命令
 
-在仓库根执行，替换下面三个路径。`--cc-workspace` 是 cc-connect 项目的 **work_dir**，不是 cc-connect 程序安装目录，也不是 `.claude` 目录。
+在仓库根执行，替换下面两个路径。`--cc-workspace` 是 cc-connect 项目的 **work_dir**，不是程序安装目录或 `.claude` 目录。
 
 ```sh
 ./.venv/bin/python scripts/configure.py \
   --vault "/absolute/path/to/your/ObsidianVault" \
-  --chrome-profile "$HOME/Library/Application Support/Google/Chrome/Default" \
   --cc-workspace "/absolute/path/to/your/cc-connect-workspace"
 ```
 
-配置器会：
+配置器会只读寻找真实系统用户的 Chrome 资料，优先复用已有的抖音会话；zcode 改写 HOME 不影响这个查找。缺少会话时提示你手动打开抖音登录，再重试。关闭登录页面通常不会清除会话，无需一直保持页面打开。读取失败会说明权限或路径问题，不等于账号已经退出。
 
-1. 验证 Vault、Chrome profile 与对应缓存目录真实存在；不创建新 Chrome 资料。
-2. 在本仓库生成权限为 `0600`、被 Git 忽略的 `config.json`；记录你这次使用的虚拟环境 Python 入口。
-3. 在 work_dir 下创建 `.claude/skills/dy-author` 符号链接，以及带有你自己绝对路径的 `.claude/commands/dy-author.md`。
+1. 验证 Vault 与显式提供的路径，不新建 Chrome 资料。
+2. 生成权限为 `0600`、被 Git 忽略的 `config.json`，记录当前虚拟环境入口；默认 `browser_profile=null` 自动识别、`auto_browser_recovery=false`。获取作者清单及下载作品默认不弹出页面。
+3. 在 work_dir 创建 `.claude/skills/dy-author` 链接与 `.claude/commands/dy-author.md`。
 
-已有配置、同名技能或命令时会拒绝覆盖。保留已安装仓库的路径；移动或删除仓库会使链接和命令失效。更新时保留 `config.json`、`.venv` 与 `.cache`；本地配置变更只影响新 `init` 的批次，旧批次使用创建时的配置快照。
+已有配置、同名技能或命令时拒绝覆盖。更新时保留个人配置、虚拟环境与缓存。旧安装升级后，请将当前 `config.json` 的 `auto_browser_recovery` 设为 `false`；这一关闭设置也约束旧批次。其他运行参数仍使用创建时的快照，不删除旧批次或已保存笔记。
 
-Chrome 的资料路径可在 `chrome://version` 的 **Profile Path** 查看。使用 `Profile 1` 时把上例 `Default` 换成 `Profile 1`，配置器会对应 macOS 标准缓存目录；自定义 user-data 位置必须额外传 `--chrome-cache "/absolute/path/to/Cache_Data"`。请确认是你愿意授权读取的资料，不要粘贴 Cookie 到聊天或 GitHub。
+需要固定资料时，用 `chrome://version` 的 **Profile Path** 填入 `--chrome-profile`。标准 Chrome 缓存自动匹配；自定义 user-data 目录还需 `--chrome-cache`。只有明确希望可见浏览器恢复时才手动启用 `auto_browser_recovery=true`。请只授权自己的资料，不粘贴或提交 Cookie。
 
 只安装 Skill、不创建 cc-connect 命令时省略 `--cc-workspace`。无浏览器模式用 `--no-browser` 代替 Chrome 参数。手动配置可参考 [config.example.json](config.example.json)，实际配置必须保存为本仓库的 `config.json`，所有路径换成你自己的绝对路径。字段说明见 [docs/configuration.md](docs/configuration.md)。
 

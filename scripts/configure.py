@@ -33,16 +33,20 @@ def configure(args, root=ROOT):
         config.update(browser=None, browser_profile=None, browser_cache_dir=None,
                       auto_browser_recovery=False)
     else:
-        default_root = Path.home() / "Library/Application Support/Google/Chrome"
-        profile = directory(args.chrome_profile or default_root / "Default", "Chrome profile")
-        if args.chrome_cache:
-            cache = directory(args.chrome_cache, "Chrome Cache_Data")
-        elif profile.parent == default_root.resolve():
-            cache = directory(Path.home() / "Library/Caches/Google/Chrome" / profile.name / "Cache/Cache_Data",
-                              "Chrome Cache_Data")
-        else:
-            raise ValueError("自定义 Chrome user-data 目录须同时指定 --chrome-cache")
-        config.update(browser_profile=str(profile), browser_cache_dir=str(cache))
+        import chrome_session
+        if args.chrome_profile:
+            profile = directory(args.chrome_profile, "Chrome profile")
+            if args.chrome_cache:
+                cache = str(directory(args.chrome_cache, "Chrome Cache_Data"))
+            else:
+                cache = chrome_session.cache_path(profile, {})
+                if cache is None:
+                    raise ValueError("自定义 Chrome user-data 目录须同时指定 --chrome-cache")
+            config.update(browser_profile=str(profile), browser_cache_dir=cache)
+        elif args.chrome_cache:
+            raise ValueError("--chrome-cache 须与对应的 --chrome-profile 一起指定")
+        # Null means discover the actual OS user's active Chrome profiles at run time.
+        config["auto_browser_recovery"] = False
     if bool(args.cc_binary) != bool(args.cc_data_dir):
         raise ValueError("--cc-binary 和 --cc-data-dir 必须一起指定")
     if args.cc_binary:
@@ -67,6 +71,8 @@ def configure(args, root=ROOT):
             raise ValueError("安装路径不能含换行或 Markdown backtick")
         command_text = template.replace("@@SKILL_DIR@@", str(root))
     # All supplied paths and existing installation conflicts are checked before writes.
+    import chrome_session
+    _, session = chrome_session.resolve_config(config)
     with config_path.open("x", encoding="utf-8") as handle:
         os.chmod(config_path, 0o600)
         json.dump(config, handle, ensure_ascii=False, indent=2)
@@ -79,7 +85,8 @@ def configure(args, root=ROOT):
             handle.write(command_text)
     return {"status": "configured", "config_file": str(config_path),
             "skill_link": str(skill_link) if skill_link else None,
-            "command_file": str(command_path) if command_path else None}
+            "command_file": str(command_path) if command_path else None,
+            "browser_session": session}
 
 
 def parser():

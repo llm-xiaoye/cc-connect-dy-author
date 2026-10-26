@@ -64,6 +64,18 @@ class ConfigureTests(unittest.TestCase):
             configure.configure(self.args(), self.root)
         self.assertEqual((self.root / "config.json").read_bytes(), before)
 
+    def test_fresh_download_defaults_to_auto_profile_and_silent_mode(self):
+        session = {"status": "login_required", "message": "请手动登录"}
+        with patch("chrome_session.resolve_config", side_effect=lambda config: (dict(config), session)), \
+             patch("subprocess.Popen") as browser:
+            result = configure.configure(self.args(no_browser=False), self.root)
+        config = json.loads((self.root / "config.json").read_text())
+        self.assertIsNone(config["browser_profile"])
+        self.assertIsNone(config["browser_cache_dir"])
+        self.assertFalse(config["auto_browser_recovery"])
+        self.assertEqual(result["browser_session"], session)
+        browser.assert_not_called()
+
     def test_custom_profile_requires_matching_explicit_cache(self):
         profile = self.root / "custom-user-data/Profile 2"
         cache = self.root / "custom-cache/Cache_Data"

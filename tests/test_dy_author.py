@@ -303,7 +303,8 @@ class PrepareCommitTests(QueueBase):
 class RecoveryTests(QueueBase):
     def run_one(self):
         run, state, config, _ = self.plan(listing((FIRST, "video", ""),))
-        return run, state, dict(config, browser="chrome", browser_cache_dir=str(self.root / "no-chrome-cache"))
+        return run, state, dict(config, browser="chrome", auto_browser_recovery=True,
+                               browser_cache_dir=str(self.root / "no-chrome-cache"))
 
     def test_detail_failure_opens_browser_once_then_recovers(self):
         run, state, config = self.run_one()

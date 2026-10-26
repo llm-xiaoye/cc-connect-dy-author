@@ -9,11 +9,11 @@
 | `cache_dir` | 个人运行材料/状态目录，默认仓库下 `.cache`；不要放在公开同步目录。 |
 | `material_cache_dirs` | 可选的原始材料目录，默认空；补录时只读检索作品 ID 一致的 bundle.json 与 transcript.json。只加入自己明确授权的路径。 |
 | `browser` | `chrome`；无浏览器模式为 JSON `null`。 |
-| `browser_profile` | Chrome 的完整 profile 目录，须与实际 Cookie 读取/页面打开使用的资料一致。 |
-| `browser_cache_dir` | 同一资料的 `Cache_Data`；标准 macOS 路径一般为 `~/Library/Caches/Google/Chrome/<资料名>/Cache/Cache_Data`，实际配置使用展开后的绝对路径。 |
-| `auto_browser_recovery` | 默认 `true`；材料获取失败时有限地打开作品页面恢复。无浏览器模式为 `false`。 |
+| `browser_profile` | 默认 `null`：从真实系统用户的 Chrome 资料中优先选择有抖音会话的资料，不依赖 zcode 改写的 HOME。也可指定完整 profile 目录。 |
+| `browser_cache_dir` | 默认 `null`：与所选 profile 自动匹配；显式自定义资料目录须指定对应 Cache_Data。 |
+| `auto_browser_recovery` | 默认 `false`：不自动弹出作品页。仅用户明确允许可见恢复时设置 `true`。当前关闭设置同样约束旧批次。 |
 | `prefer_browser_media` | 默认 `false`；为 `true` 时优先浏览器恢复。 |
-| `background_detail_first` | 默认 `true`；先后台取严格匹配 ID 的详情，再回退浏览器。 |
+| `background_detail_first` | 默认 `true`；先后台取严格匹配 ID 的详情。只有显式启用自动开页时才允许可见恢复。 |
 | `close_opened_tabs` | 默认 `true`；仅尝试关闭本次打开、严格匹配作品的新增标签。需系统授权。 |
 | `browser_recovery_wait_seconds` | 默认 8，0–20 秒。 |
 | `browser_media_timeout_seconds` | 默认 40，0–40 秒，共享缓存等待预算。 |

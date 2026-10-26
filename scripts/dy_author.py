@@ -60,14 +60,17 @@ def initialize(config):
         raise ValueError(f"知识库目录不存在：{vault}")
     if (vault / ".knowledge-migration-in-progress.json").exists():
         raise ValueError("知识库正在迁移，请迁移完成后重新 init。")
+    import chrome_session
+    config, session = chrome_session.resolve_config(config)
     base = runs_root(config)
     run = base / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:12])
     run.mkdir(parents=True, mode=0o700)
     snapshot = dict(config, vault=str(vault), cache_dir=str(base.parent))
     pipeline.write_json(run / "config.json", snapshot)
     pipeline.write_json(run / "state.json", {"schema_version": 1, "run_dir": str(run), "planned": False,
-                                             "items": [], "warnings": []})
-    return {"run_dir": str(run), "input_file": str(run / "input.txt"), "state_file": str(run / "state.json")}
+                                             "items": [], "warnings": [], "browser_session": session})
+    return {"run_dir": str(run), "input_file": str(run / "input.txt"), "state_file": str(run / "state.json"),
+            "browser_session": session}
 
 
 def load_run(value, config):
@@ -459,7 +462,7 @@ def prepare_item(run, state, item, config):
         initial_config = config
         attempted = item.get("browser_recovery", {}).get("attempted")
         browser_flow = (config.get("browser") == "chrome" and pipeline.sys.platform == "darwin"
-                        and config.get("auto_browser_recovery", True) and not attempted)
+                        and config.get("auto_browser_recovery", False) is True and not attempted)
         if browser_flow and config.get("prefer_browser_media", False):
             initial_config = dict(config, _browser_media_only=True)
         elif browser_flow and config.get("background_detail_first", False):
@@ -468,7 +471,7 @@ def prepare_item(run, state, item, config):
             initial_config = dict(config, _background_detail_only=True)
         return call_pipeline(pipeline.prepare, args, initial_config)
     except pipeline.image_posts.StageError as exc:
-        if exc.code != "DETAIL_UNAVAILABLE" or config.get("auto_browser_recovery", True) is not True:
+        if exc.code != "DETAIL_UNAVAILABLE" or config.get("auto_browser_recovery", False) is not True:
             raise
         if item.get("browser_recovery", {}).get("attempted"):
             raise pipeline.image_posts.StageError("detail", "浏览器恢复机会已使用；本条停止重试。",
@@ -840,6 +843,18 @@ def main():
             run, _, _ = load_run(args.run, config)
             with locked(run / ".lock"):
                 run, state, frozen = load_run(args.run, config)
+                # A current opt-out also applies to older run snapshots.
+                frozen["auto_browser_recovery"] = (config.get("auto_browser_recovery", False) is True
+                                                    and frozen.get("auto_browser_recovery", False) is True)
+                if args.command in ("plan", "next", "prepare-all"):
+                    _, mode, _ = checked_input(run, state)
+                    if mode == "author":
+                        import chrome_session
+                        frozen, session = chrome_session.resolve_config(frozen)
+                        state["browser_session"] = session
+                        write_state(run, state)
+                        chrome_session.require_session(session)
+                    pipeline.write_json(run / "config.json", frozen)
                 if args.command == "plan":
                     result = plan(run, state, frozen)
                 elif args.command == "next":
